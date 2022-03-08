@@ -44,11 +44,11 @@ module Lexer = struct
         | '-' -> (Minus, tail)
         | _ when is_whitespace head -> (Whitespace, tail)
         | _ when is_identifier head ->
-            let identifier = lex_while is_identifier chars in
-            (Identifier (fst identifier), snd identifier)
+            let value, tail = lex_while is_identifier chars in
+            (Identifier value, tail)
         | _ when is_digit head ->
-            let integer = lex_while is_digit chars in
-            (Integer (fst integer), snd integer)
+            let value, tail = lex_while is_digit chars in
+            (Integer value, tail)
         | _ -> (Illegal head, tail))
 
   (* TODO: Not adding the [EOF] token at the end. *)
@@ -77,5 +77,6 @@ end
 
 let () =
   read_line () |> Lexer.lex
+  |> List.filter (fun tok -> tok != Lexer.Whitespace)
   |> List.map Lexer.string_of_token
   |> String.concat ", " |> print_endline
