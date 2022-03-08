@@ -1,6 +1,6 @@
 module Lexer = struct
   type token =
-    | Illegal
+    | Illegal of char
     | Identifier of string
     | Integer of string
     | Plus
@@ -34,6 +34,7 @@ module Lexer = struct
     in
     aux [] chars
 
+  (** Lex the next token. If the given char list is empty, the [EOF] token will be returned. *)
   let lex_token chars =
     match chars with
     | [] -> (EOF, [])
@@ -48,7 +49,7 @@ module Lexer = struct
         | _ when is_digit head ->
             let integer = lex_while is_digit chars in
             (Integer (fst integer), snd integer)
-        | _ -> (Illegal, tail))
+        | _ -> (Illegal head, tail))
 
   (* TODO: Not adding the [EOF] token at the end. *)
 
@@ -65,7 +66,7 @@ module Lexer = struct
     aux [] chars |> List.rev
 
   let string_of_token = function
-    | Illegal -> "unknown"
+    | Illegal value -> "illegal(" ^ String.make 1 value ^ ")"
     | Identifier value -> "identifier(" ^ value ^ ")"
     | Integer value -> "integer(" ^ value ^ ")"
     | Plus -> "plus"
