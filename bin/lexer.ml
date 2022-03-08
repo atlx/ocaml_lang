@@ -2,6 +2,7 @@ module Lexer = struct
   type token =
     | Illegal
     | Identifier of string
+    | Integer of string
     | Plus
     | Minus
     | Whitespace
@@ -12,26 +13,24 @@ module Lexer = struct
     ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'
 
   let is_whitespace = function ' ' | '\t' | '\n' | '\r' -> true | _ -> false
-
-  (* let is_digit ch = '0' <= ch && ch <= '9' *)
+  let is_digit ch = '0' <= ch && ch <= '9'
 
   (** Flatten a list of characters into a string. *)
-  let string_of_char_list char_list =
+  let string_of_chars chars =
     let rec aux acc = function
       | [] -> acc
       | head :: tail -> aux (String.concat "" [ acc; String.make 1 head ]) tail
     in
-    aux "" (List.rev char_list)
+    aux "" (List.rev chars)
 
-  (** Create an [Identifier] token from the given character list. *)
-  let lex_identifier chars =
-    let rec aux acc char_list =
-      match char_list with
-      | [] -> (string_of_char_list acc, [])
+  let lex_while predicate chars =
+    let rec aux acc chars =
+      match chars with
+      | [] -> (string_of_chars acc, [])
       | head :: tail -> (
           match head with
-          | _ when is_identifier head -> aux (head :: acc) tail
-          | _ -> (string_of_char_list acc, char_list))
+          | _ when predicate head -> aux (head :: acc) tail
+          | _ -> (string_of_chars acc, chars))
     in
     aux [] chars
 
@@ -44,9 +43,14 @@ module Lexer = struct
         | '-' -> (Minus, tail)
         | _ when is_whitespace head -> (Whitespace, tail)
         | _ when is_identifier head ->
-            let identifier = lex_identifier chars in
+            let identifier = lex_while is_identifier chars in
             (Identifier (fst identifier), snd identifier)
+        | _ when is_digit head ->
+            let integer = lex_while is_digit chars in
+            (Integer (fst integer), snd integer)
         | _ -> (Illegal, tail))
+
+  (* TODO: Not adding the [EOF] token at the end. *)
 
   (** Collect all possible tokens from a string. *)
   let lex str =
@@ -63,6 +67,7 @@ module Lexer = struct
   let string_of_token = function
     | Illegal -> "unknown"
     | Identifier value -> "identifier(" ^ value ^ ")"
+    | Integer value -> "integer(" ^ value ^ ")"
     | Plus -> "plus"
     | Minus -> "minus"
     | Whitespace -> "whitespace"
@@ -70,7 +75,6 @@ module Lexer = struct
 end
 
 let () =
-  Lexer.lex "h how are you"
+  read_line () |> Lexer.lex
   |> List.map Lexer.string_of_token
   |> String.concat ", " |> print_endline
-(*[ 'a'; 'b'; 'c' ] |> Lexer.string_of_char_list |> print_endline*)
