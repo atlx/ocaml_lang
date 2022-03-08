@@ -34,9 +34,6 @@ module Lexer = struct
     in
     aux [] char_list
 
-  (** Deconstruct a string into a list of characters. *)
-  let explode str = List.init (String.length str) (String.get str)
-
   let lex_token char_list =
     match char_list with
     | [] -> (EOF, [])
@@ -52,18 +49,18 @@ module Lexer = struct
 
   (** Collect all possible tokens from a string. *)
   let lex str =
-    let rec aux char_list tok acc =
-      match tok with
-      | EOF -> tok :: acc
-      | _ ->
+    let rec aux char_list acc =
+      match char_list with
+      | [] -> acc
+      | _ :: _ ->
           if char_list = [] then acc
           else
             let lex_result = lex_token char_list in
-            aux (snd lex_result) (fst lex_result) (tok :: acc)
+            aux (snd lex_result) (fst lex_result :: acc)
     in
-    let char_list = explode str in
-    let prime_lex_result = lex_token char_list in
-    aux (snd prime_lex_result) (fst prime_lex_result) [] |> List.rev
+    (* Deconstruct the string into a list of characters. *)
+    let char_list = List.init (String.length str) (String.get str) in
+    aux char_list [] |> List.rev
 
   let string_of_token = function
     | Illegal -> "unknown"
@@ -75,7 +72,7 @@ module Lexer = struct
 end
 
 let () =
-  Lexer.lex "hello world   --- "
+  Lexer.lex "h world how are you  --- "
   |> List.map Lexer.string_of_token
   |> String.concat ", " |> print_endline
 (*[ 'a'; 'b'; 'c' ] |> Lexer.string_of_char_list |> print_endline*)
