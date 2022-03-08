@@ -1,5 +1,6 @@
 type token = Unknown | Identifier of string | Plus | EOF
 
+(** Determine whether a character is within the (inclusive) range of a-z or A-Z. *)
 let is_identifier_char ch =
   ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'
 
@@ -15,6 +16,7 @@ let string_of_char_list char_list =
   in
   aux (List.rev char_list) ""
 
+(** Create an [Identifier] token from the given character list. *)
 let lex_identifier char_list =
   let rec aux char_list accumulator =
     match char_list with
@@ -26,9 +28,11 @@ let lex_identifier char_list =
   in
   aux char_list []
 
+(** Deconstruct a string into a list of characters. *)
 let explode str = List.init (String.length str) (String.get str)
 
-let lex (str : string) =
+(** Collect all possible tokens from a string. *)
+let lex str =
   let lex_token char_list =
     match char_list with
     | [] -> EOF
@@ -49,7 +53,5 @@ let string_of_token = function
   | EOF -> "eof"
 
 let () =
-  String.concat ", "
-    (List.map string_of_token (lex "hello_world hello world +"))
-  |> print_endline
-(* output: identifier(hello_world) *)
+  lex "hello_world hello world +"
+  |> List.map string_of_token |> String.concat ", " |> print_endline
