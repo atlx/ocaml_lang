@@ -6,6 +6,7 @@ module Lexer = struct
     | Plus
     | Minus
     | Whitespace
+    | Fn
     | EOF
 
   (** Determine whether a character is within the (inclusive) range
@@ -45,6 +46,7 @@ module Lexer = struct
       match head with
       | '+' -> (Plus, tail)
       | '-' -> (Minus, tail)
+      | 'f' -> (Fn, tail)
       | _ when is_whitespace head -> (Whitespace, tail)
       | _ when is_identifier head ->
         let value, tail = lex_while is_identifier chars in
@@ -77,5 +79,6 @@ module Lexer = struct
     | Plus -> "plus"
     | Minus -> "minus"
     | Whitespace -> "whitespace"
+    | Fn -> "fn"
     | EOF -> "eof"
 end
