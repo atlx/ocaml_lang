@@ -36,7 +36,8 @@ module Lexer = struct
     in
     aux [] chars
 
-  (** Lex the next token. If the given char list is empty, the [EOF] token will be returned. *)
+  (** Lex the next token. If the given char list is empty, the [EOF]
+      token will be returned. *)
   let lex_token chars =
     match chars with
     | [] -> (EOF, [])
