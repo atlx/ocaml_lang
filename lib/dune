@@ -1,2 +1,8 @@
 (library
+ (public_name ocaml_lang)
  (name ocaml_lang))
+
+(env
+ (dev
+  (flags
+   (:standard -w -32))))

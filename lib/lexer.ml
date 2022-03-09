@@ -8,7 +8,8 @@ module Lexer = struct
     | Whitespace
     | EOF
 
-  (** Determine whether a character is within the (inclusive) range of a-z or A-Z. *)
+  (** Determine whether a character is within the (inclusive) range
+      of [a-z] or [A-Z], or is the [_] char. *)
   let is_identifier ch =
     ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'
 
@@ -27,10 +28,11 @@ module Lexer = struct
     let rec aux acc chars =
       match chars with
       | [] -> (string_of_chars acc, [])
-      | head :: tail -> (
-          match head with
-          | _ when predicate head -> aux (head :: acc) tail
-          | _ -> (string_of_chars acc, chars))
+      | head :: tail -> begin
+        match head with
+        | _ when predicate head -> aux (head :: acc) tail
+        | _ -> (string_of_chars acc, chars)
+      end
     in
     aux [] chars
 
@@ -38,18 +40,19 @@ module Lexer = struct
   let lex_token chars =
     match chars with
     | [] -> (EOF, [])
-    | head :: tail -> (
-        match head with
-        | '+' -> (Plus, tail)
-        | '-' -> (Minus, tail)
-        | _ when is_whitespace head -> (Whitespace, tail)
-        | _ when is_identifier head ->
-            let value, tail = lex_while is_identifier chars in
-            (Identifier value, tail)
-        | _ when is_digit head ->
-            let value, tail = lex_while is_digit chars in
-            (Integer value, tail)
-        | _ -> (Illegal head, tail))
+    | head :: tail -> begin
+      match head with
+      | '+' -> (Plus, tail)
+      | '-' -> (Minus, tail)
+      | _ when is_whitespace head -> (Whitespace, tail)
+      | _ when is_identifier head ->
+        let value, tail = lex_while is_identifier chars in
+        (Identifier value, tail)
+      | _ when is_digit head ->
+        let value, tail = lex_while is_digit chars in
+        (Integer value, tail)
+      | _ -> (Illegal head, tail)
+    end
 
   (* TODO: Not adding the [EOF] token at the end. *)
 
@@ -58,11 +61,12 @@ module Lexer = struct
     let rec aux acc = function
       | [] -> acc
       | chars ->
-          let lex_result = lex_token chars in
-          aux (fst lex_result :: acc) (snd lex_result)
+        let lex_result = lex_token chars in
+        aux (fst lex_result :: acc) (snd lex_result)
+    and chars =
+      (* Deconstruct the string into a list of characters. *)
+      List.init (String.length str) (String.get str)
     in
-    (* Deconstruct the string into a list of characters. *)
-    let chars = List.init (String.length str) (String.get str) in
     aux [] chars |> List.rev
 
   let string_of_token = function
@@ -74,9 +78,3 @@ module Lexer = struct
     | Whitespace -> "whitespace"
     | EOF -> "eof"
 end
-
-let () =
-  read_line () |> Lexer.lex
-  |> List.filter (fun tok -> tok != Lexer.Whitespace)
-  |> List.map Lexer.string_of_token
-  |> String.concat ", " |> print_endline
