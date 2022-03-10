@@ -6,7 +6,10 @@ module Lexer = struct
     | Plus
     | Minus
     | Whitespace
-    | Fn
+    | At
+    | BraceL
+    | BraceR
+    | Bang
     | EOF
 
   (** Determine whether a character is within the (inclusive) range
@@ -46,7 +49,10 @@ module Lexer = struct
       match head with
       | '+' -> (Plus, tail)
       | '-' -> (Minus, tail)
-      | 'f' -> (Fn, tail)
+      | '@' -> (At, tail)
+      | '{' -> (BraceL, tail)
+      | '}' -> (BraceR, tail)
+      | '!' -> (Bang, tail)
       | _ when is_whitespace head -> (Whitespace, tail)
       | _ when is_identifier head ->
         let value, tail = lex_while is_identifier chars in
@@ -72,13 +78,21 @@ module Lexer = struct
     in
     aux [] chars |> List.rev
 
-  let string_of_token = function
-    | Illegal value -> "illegal(" ^ String.make 1 value ^ ")"
-    | Identifier value -> "identifier(" ^ value ^ ")"
-    | Integer value -> "integer(" ^ value ^ ")"
-    | Plus -> "plus"
-    | Minus -> "minus"
-    | Whitespace -> "whitespace"
-    | Fn -> "fn"
-    | EOF -> "eof"
+  let string_of_token token =
+    "'"
+    ^ begin
+        match token with
+        | Illegal value -> "illegal(" ^ String.make 1 value ^ ")"
+        | Identifier value -> "identifier(" ^ value ^ ")"
+        | Integer value -> "integer(" ^ value ^ ")"
+        | Plus -> "plus"
+        | Minus -> "minus"
+        | Whitespace -> "whitespace"
+        | At -> "at_sign"
+        | BraceL -> "left_brace"
+        | BraceR -> "right_brace"
+        | Bang -> "bang"
+        | EOF -> "eof"
+      end
+    ^ "'"
 end
