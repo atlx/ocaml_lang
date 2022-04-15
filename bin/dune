@@ -1,7 +1,7 @@
 (executable
  (public_name driver)
  (name driver)
- (libraries ocaml_lang))
+ (libraries ocaml_lang llvm))
 
 (env
  (dev

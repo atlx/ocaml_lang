@@ -90,7 +90,7 @@ module Parser = struct
           | Lexer.Identifier _ -> parse_name tokens
           | Lexer.At -> parse_fn tokens
           | Lexer.BraceL -> parse_block tokens
-          | _ -> Error ("unexpected token " ^ Lexer.string_of_token head)
+          | _ -> unexpected_token head "top-level construct"
         in
         match result with
         | Ok (name, tail) -> aux tail (name :: acc)
