@@ -19,7 +19,7 @@
  (name ocaml_lang)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml dune)
+ (depends ocaml dune ounit2) ; TODO: Is the 'ounit2' required here?
  (tags
   (topics "to describe" your project)))
 

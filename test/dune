@@ -1,2 +1,11 @@
+; (test
+;  (name ocaml_lang))
+
 (test
- (name ocaml_lang))
+ (name test)
+ (libraries ounit2 ocaml_lang llvm))
+
+; (rule
+;  (alias runtest)
+;  (action
+;   (run ./_build/default/test/test.exe)))

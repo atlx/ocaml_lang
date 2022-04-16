@@ -18,6 +18,7 @@ module Lexer = struct
     ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'
 
   let is_whitespace = function ' ' | '\t' | '\n' | '\r' -> true | _ -> false
+
   let is_digit ch = '0' <= ch && ch <= '9'
 
   (** Flatten a list of characters into a string. *)
@@ -26,19 +27,19 @@ module Lexer = struct
       | [] -> acc
       | head :: tail -> aux (String.concat "" [ acc; String.make 1 head ]) tail
     in
-    aux "" (List.rev chars)
+    aux "" chars
 
-  let lex_while predicate chars =
+  let lex_while predicate initial_chars =
     let rec aux acc chars =
       match chars with
       | [] -> (string_of_chars acc, [])
       | head :: tail -> begin
         match head with
         | _ when predicate head -> aux (head :: acc) tail
-        | _ -> (string_of_chars acc, chars)
+        | _ -> (string_of_chars (List.rev acc), chars)
       end
     in
-    aux [] chars
+    aux [] initial_chars
 
   (** Lex the next token. If the given char list is empty, the [EOF]
       token will be returned. *)
@@ -55,7 +56,9 @@ module Lexer = struct
       | '!' -> (Bang, tail)
       | _ when is_whitespace head -> (Whitespace, tail)
       | _ when is_identifier head ->
-        let value, tail = lex_while is_identifier chars in
+        let value, tail =
+          lex_while (fun c -> is_identifier c || is_digit c) chars
+        in
         (Identifier value, tail)
       | _ when is_digit head ->
         let value, tail = lex_while is_digit chars in

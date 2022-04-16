@@ -8,6 +8,8 @@ module Parser = struct
     | ReturnStmt of ast
     | IntLiteral of int
 
+  let eof = Error "unexpected end of file"
+
   (** Convert a ast node to a string. Not tail-recursive. *)
   let rec string_of_ast = function
     | Name value -> "(name: " ^ value ^ ")"
@@ -28,52 +30,53 @@ module Parser = struct
      result) t = match f t with Ok v -> v | Error msg -> Error msg *)
 
   let parse_name = function
-    | [] -> Error "reached end of file"
+    | [] -> eof
     | Lexer.Identifier name :: tail -> Ok (Name name, tail)
     | token :: _ -> unexpected_token token "identifier"
 
   let parse_expr = function
-    | [] -> Error "reached end of file"
+    | [] -> eof
     (* TODO: Unsafe code. Raises exception on integer parsing failure. *)
-    | Lexer.Integer value :: tail -> Ok (IntLiteral (int_of_string value), tail)
+    | Lexer.Integer value :: tokens ->
+      Ok (IntLiteral (int_of_string value), tokens)
     | token :: _ -> unexpected_token token "expression"
 
   (* let ( := ) t x = match x with | Ok (value, tail) -> Ok (t value, tail) |
      Error msg -> Error msg *)
 
   let parse_return_stmt = function
-    | [] -> Error "reached end of file"
-    | Lexer.Bang :: tail -> begin
-      match parse_expr tail with
-      | Ok (value, tail) -> Ok (ReturnStmt value, tail)
+    | [] -> eof
+    | Lexer.Bang :: tokens -> begin
+      match parse_expr tokens with
+      | Ok (value, next_tokens) -> Ok (ReturnStmt value, next_tokens)
       | error -> error
     end
     | token :: _ -> unexpected_token token (Lexer.string_of_token Lexer.Bang)
 
   let parse_block = function
-    | [] -> Error "reached end of file"
-    | Lexer.BraceL :: prime_tail ->
-      let rec aux acc next_tail =
-        match next_tail with
-        | [] -> Error "reached end of file"
+    | [] -> eof
+    | Lexer.BraceL :: init_tokens ->
+      let rec aux acc next_tokens =
+        match next_tokens with
+        | [] -> eof
         | Lexer.BraceL :: Lexer.BraceR :: tail -> Ok (Block [], tail)
         | Lexer.BraceR :: tail -> Ok (Block (List.rev acc), tail)
         | Lexer.Bang :: _ -> begin
-          match parse_return_stmt next_tail with
+          match parse_return_stmt next_tokens with
           | Ok (return_stmt, tail) -> aux (return_stmt :: acc) tail
           | error -> error
         end
         | token :: _ ->
           unexpected_token token (Lexer.string_of_token Lexer.BraceL)
       in
-      aux [] prime_tail
+      aux [] init_tokens
     | token :: _ -> unexpected_token token (Lexer.string_of_token Lexer.BraceL)
 
   let parse_fn = function
-    | [] -> Error "reached end of file"
-    | Lexer.At :: Lexer.Identifier name :: tail -> begin
-      match parse_block tail with
-      | Ok (body, next_tail) -> Ok (Function { name; body }, next_tail)
+    | [] -> eof
+    | Lexer.At :: Lexer.Identifier name :: tokens -> begin
+      match parse_block tokens with
+      | Ok (body, next_tokens) -> Ok (Function { name; body }, next_tokens)
       | error -> error
     end
     | token :: _ -> unexpected_token token (Lexer.string_of_token Lexer.At)
@@ -93,7 +96,7 @@ module Parser = struct
           | _ -> unexpected_token head "top-level construct"
         in
         match result with
-        | Ok (name, tail) -> aux tail (name :: acc)
+        | Ok (name, next_tokens) -> aux next_tokens (name :: acc)
         | Error msg -> Error msg
       end
     in

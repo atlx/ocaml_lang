@@ -1,3 +1,7 @@
 exp-grouping=preserve
 cases-exp-indent=2
 wrap-comments=true
+break-sequences=true
+cases-matching-exp-indent=compact
+# dock-collection-brackets=false
+module-item-spacing=sparse
