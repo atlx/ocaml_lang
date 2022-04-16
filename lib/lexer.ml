@@ -12,6 +12,8 @@ module Lexer = struct
     | Bang
     | EOF
 
+  type 'a state = 'a * char list
+
   (** Determine whether a character is within the (inclusive) range
       of [a-z] or [A-Z], or is the [_] char. *)
   let is_identifier ch =
@@ -29,22 +31,22 @@ module Lexer = struct
     in
     aux "" chars
 
-  let lex_while predicate initial_chars =
-    let rec aux acc chars =
-      match chars with
+  let lex_while predicate initial_state : string state =
+    let rec aux acc state =
+      match state with
       | [] -> (string_of_chars acc, [])
       | head :: tail -> begin
         match head with
         | _ when predicate head -> aux (head :: acc) tail
-        | _ -> (string_of_chars (List.rev acc), chars)
+        | _ -> (string_of_chars (List.rev acc), state)
       end
     in
-    aux [] initial_chars
+    aux [] initial_state
 
   (** Lex the next token. If the given char list is empty, the [EOF]
       token will be returned. *)
-  let lex_token chars =
-    match chars with
+  let lex_token state : token state =
+    match state with
     | [] -> (EOF, [])
     | head :: tail -> begin
       match head with
@@ -57,11 +59,11 @@ module Lexer = struct
       | _ when is_whitespace head -> (Whitespace, tail)
       | _ when is_identifier head ->
         let value, tail =
-          lex_while (fun c -> is_identifier c || is_digit c) chars
+          lex_while (fun c -> is_identifier c || is_digit c) state
         in
         (Identifier value, tail)
       | _ when is_digit head ->
-        let value, tail = lex_while is_digit chars in
+        let value, tail = lex_while is_digit state in
         (Integer value, tail)
       | _ -> (Illegal head, tail)
     end
