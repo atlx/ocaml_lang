@@ -16,12 +16,13 @@ module Lexer = struct
 
   (** Determine whether a character is within the (inclusive) range
       of [a-z] or [A-Z], or is the [_] char. *)
-  let is_identifier ch =
-    ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ch == '_'
+  let is_identifier = function
+    | 'a' .. 'z' | 'A' .. 'Z' | '_' -> true
+    | _ -> false
 
   let is_whitespace = function ' ' | '\t' | '\n' | '\r' -> true | _ -> false
 
-  let is_digit ch = '0' <= ch && ch <= '9'
+  let is_digit = function '0' .. '9' -> true | _ -> false
 
   (** Flatten a list of characters into a string. *)
   let string_of_chars chars =
@@ -34,7 +35,7 @@ module Lexer = struct
   let lex_while predicate initial_state : string state =
     let rec aux acc state =
       match state with
-      | [] -> (string_of_chars acc, [])
+      | [] -> (string_of_chars (List.rev acc), [])
       | head :: tail -> begin
         match head with
         | _ when predicate head -> aux (head :: acc) tail
@@ -42,6 +43,8 @@ module Lexer = struct
       end
     in
     aux [] initial_state
+
+  (* REVIEW: Why now make it return [Option] instead of [EOF]? *)
 
   (** Lex the next token. If the given char list is empty, the [EOF]
       token will be returned. *)
@@ -59,7 +62,7 @@ module Lexer = struct
       | _ when is_whitespace head -> (Whitespace, tail)
       | _ when is_identifier head ->
         let value, tail =
-          lex_while (fun c -> is_identifier c || is_digit c) state
+          lex_while (fun ch -> is_identifier ch || is_digit ch) state
         in
         (Identifier value, tail)
       | _ when is_digit head ->
@@ -76,6 +79,7 @@ module Lexer = struct
       | [] -> acc
       | chars ->
         let lex_result = lex_token chars in
+        (* REVISE: Possibly unsafe tuple access. *)
         aux (fst lex_result :: acc) (snd lex_result)
     and chars =
       (* Deconstruct the string into a list of characters. *)
