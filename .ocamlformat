@@ -4,4 +4,4 @@ wrap-comments=true
 break-sequences=true
 cases-matching-exp-indent=compact
 # dock-collection-brackets=false
-module-item-spacing=sparse
+# module-item-spacing=sparse

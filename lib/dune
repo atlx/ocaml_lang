@@ -1,6 +1,7 @@
 (library
  (public_name ocaml_lang)
- (name ocaml_lang))
+ (name ocaml_lang)
+ (libraries llvm))
 
 (env
  (dev
