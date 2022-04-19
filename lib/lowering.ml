@@ -65,7 +65,8 @@ module Lowering = struct
   let make_initial_state =
     let entry_block = Llvm.entry_block main in
     let builder = Llvm.builder_at_end context entry_block in
-    (Llvm.const_null (Llvm.i8_type context), main, builder)
+    (* TODO: Not using unit value. *)
+    (Llvm.const_null (Llvm.i1_type context), main, builder)
 
   let get_output () = Llvm.string_of_llmodule module_
 end
