@@ -13,4 +13,3 @@ let () =
     ignore (Lowering.iter Lowering.visit Lowering.make_initial_state ast);
     print_endline (Lowering.get_output ())
   | Error msg -> print_endline ("parse error: " ^ msg)
-(* let () = Lowering.run () *)
