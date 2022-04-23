@@ -3,11 +3,17 @@ open Parser
 module Lowering = struct
   (* type value = | Llvm.llvalue | unit *)
 
-  type 'a state = 'a * Llvm.llvalue * Llvm.llbuilder
+  type 'a old_state = 'a * Llvm.llvalue * Llvm.llbuilder
+
+  type 'a new_state = {
+    value : 'a;
+    fn : Llvm.llvalue;
+    builder : Llvm.llbuilder;
+  }
 
   let get_state state f = f state
 
-  let modify_state (state : 'a state) f : 'a state =
+  let modify_state (state : 'a old_state) f : 'a old_state =
     let value, fn, block = state in
     f (value, fn, block)
 
@@ -20,23 +26,23 @@ module Lowering = struct
       let next_state = visitor state head in
       iter visitor next_state tail
 
-  let context = Llvm.global_context ()
-  let module_ = Llvm.create_module context "program"
-  let main_type = Llvm.function_type (Llvm.i32_type context) [||]
-  let main = Llvm.define_function "main" main_type module_
+  let llvm_context = Llvm.global_context ()
+  let llvm_module = Llvm.create_module llvm_context "program"
+  let llvm_main_type = Llvm.function_type (Llvm.i32_type llvm_context) [||]
+  let llvm_main = Llvm.define_function "main" llvm_main_type llvm_module
 
   let visit_int_literal int_literal state =
     match int_literal with
     | Parser.IntLiteral int_value ->
-      let value = Llvm.const_int (Llvm.i32_type context) int_value in
+      let value = Llvm.const_int (Llvm.i32_type llvm_context) int_value in
       modify_state state (fun (_, fn, block) -> (value, fn, block))
     | _ -> state
 
   let visit_block block visitor state =
     let first_state =
       modify_state state (fun (value, fn, _) ->
-          let new_block = Llvm.append_block context "bb" main in
-          (value, fn, Llvm.builder_at_end context new_block))
+          let new_block = Llvm.append_block llvm_context "bb" fn in
+          (value, fn, Llvm.builder_at_end llvm_context new_block))
     in
     match block with
     | Parser.Block statements ->
@@ -57,7 +63,13 @@ module Lowering = struct
 
   let visit_function fn visitor state =
     match fn with
-    | Parser.Function { name = _; body } -> visit_block body visitor state
+    | Parser.Function { name; body } ->
+      let llvm_fn_type =
+        (Llvm.function_type (Llvm.void_type llvm_context)) [||]
+      in
+      let llvm_fn = Llvm.define_function name llvm_fn_type llvm_module in
+      visit_block body visitor
+        (modify_state state (fun (value, _, block) -> (value, llvm_fn, block)))
     | _ -> state
 
   let rec visit state = function
@@ -69,10 +81,10 @@ module Lowering = struct
     | _ -> state
 
   let make_initial_state =
-    let entry_block = Llvm.entry_block main in
-    let builder = Llvm.builder_at_end context entry_block in
+    let entry_block = Llvm.entry_block llvm_main in
+    let builder = Llvm.builder_at_end llvm_context entry_block in
     (* TODO: Not using unit or Option/None value. *)
-    (Llvm.const_null (Llvm.i1_type context), main, builder)
+    (Llvm.const_null (Llvm.i1_type llvm_context), llvm_main, builder)
 
-  let get_output () = Llvm.string_of_llmodule module_
+  let get_output () = Llvm.string_of_llmodule llvm_module
 end
