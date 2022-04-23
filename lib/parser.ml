@@ -46,12 +46,12 @@ module Parser = struct
 
   let parse_return_stmt = function
     | [] -> eof
-    | Lexer.Bang :: tokens -> begin
+    | Lexer.Return :: tokens -> begin
       match parse_expr tokens with
       | Ok (value, next_tokens) -> Ok (ReturnStmt value, next_tokens)
       | error -> error
     end
-    | token :: _ -> unexpected_token token (Lexer.string_of_token Lexer.Bang)
+    | token :: _ -> unexpected_token token (Lexer.string_of_token Lexer.Return)
 
   let parse_block = function
     | [] -> eof
@@ -61,7 +61,7 @@ module Parser = struct
         | [] -> eof
         | Lexer.BraceL :: Lexer.BraceR :: tail -> Ok (Block [], tail)
         | Lexer.BraceR :: tail -> Ok (Block (List.rev acc), tail)
-        | Lexer.Bang :: _ -> begin
+        | Lexer.Return :: _ -> begin
           match parse_return_stmt next_tokens with
           | Ok (return_stmt, tail) -> aux (return_stmt :: acc) tail
           | error -> error
@@ -74,12 +74,12 @@ module Parser = struct
 
   let parse_fn = function
     | [] -> eof
-    | Lexer.At :: Lexer.Identifier name :: tokens -> begin
+    | Lexer.Fn :: Lexer.Identifier name :: tokens -> begin
       match parse_block tokens with
       | Ok (body, next_tokens) -> Ok (Function { name; body }, next_tokens)
       | error -> error
     end
-    | token :: _ -> unexpected_token token (Lexer.string_of_token Lexer.At)
+    | token :: _ -> unexpected_token token (Lexer.string_of_token Lexer.Fn)
 
   (* TODO: What if we match the [Lexer.EOF] token? Then return? Consider having
      it be a base case. *)
@@ -91,8 +91,7 @@ module Parser = struct
         let result =
           match head with
           | Lexer.Identifier _ -> parse_name tokens
-          | Lexer.At -> parse_fn tokens
-          | Lexer.BraceL -> parse_block tokens
+          | Lexer.Fn -> parse_fn tokens
           | _ -> unexpected_token head "top-level construct"
         in
         match result with

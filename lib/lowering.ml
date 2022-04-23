@@ -51,11 +51,17 @@ module Lowering = struct
     | Parser.ReturnStmt expr ->
       let next_state = visitor state expr in
       get_state next_state (fun (value, fn, builder) ->
-          (* TODO: Must we ensure that the value isn't unit? *)
+          (* TODO: Must we ensure that the value isn't unit (or None)? *)
           (Llvm.build_ret value builder, fn, builder))
     | _ -> state
 
+  let visit_function fn visitor state =
+    match fn with
+    | Parser.Function { name = _; body } -> visit_block body visitor state
+    | _ -> state
+
   let rec visit state = function
+    | Parser.Function _ as fn -> visit_function fn visit state
     | Parser.Block _ as block -> visit_block block visit state
     | Parser.ReturnStmt _ as return_stmt ->
       visit_return_stmt return_stmt visit state
@@ -65,7 +71,7 @@ module Lowering = struct
   let make_initial_state =
     let entry_block = Llvm.entry_block main in
     let builder = Llvm.builder_at_end context entry_block in
-    (* TODO: Not using unit value. *)
+    (* TODO: Not using unit or Option/None value. *)
     (Llvm.const_null (Llvm.i1_type context), main, builder)
 
   let get_output () = Llvm.string_of_llmodule module_

@@ -6,10 +6,10 @@ module Lexer = struct
     | Plus
     | Minus
     | Whitespace
-    | At
     | BraceL
     | BraceR
-    | Bang
+    | Return
+    | Fn
     | EOF
 
   type 'a state = 'a * char list
@@ -21,7 +21,6 @@ module Lexer = struct
     | _ -> false
 
   let is_whitespace = function ' ' | '\t' | '\n' | '\r' -> true | _ -> false
-
   let is_digit = function '0' .. '9' -> true | _ -> false
 
   (** Flatten a list of characters into a string. *)
@@ -55,16 +54,18 @@ module Lexer = struct
       match head with
       | '+' -> (Plus, tail)
       | '-' -> (Minus, tail)
-      | '@' -> (At, tail)
       | '{' -> (BraceL, tail)
       | '}' -> (BraceR, tail)
-      | '!' -> (Bang, tail)
       | _ when is_whitespace head -> (Whitespace, tail)
-      | _ when is_identifier head ->
+      | _ when is_identifier head -> begin
         let value, tail =
           lex_while (fun ch -> is_identifier ch || is_digit ch) state
         in
-        (Identifier value, tail)
+        match value with
+        | "return" -> (Return, tail)
+        | "fn" -> (Fn, tail)
+        | _ -> (Identifier value, tail)
+      end
       | _ when is_digit head ->
         let value, tail = lex_while is_digit state in
         (Integer value, tail)
@@ -97,10 +98,10 @@ module Lexer = struct
         | Plus -> "plus"
         | Minus -> "minus"
         | Whitespace -> "whitespace"
-        | At -> "at_sign"
         | BraceL -> "left_brace"
         | BraceR -> "right_brace"
-        | Bang -> "bang"
+        | Return -> "return"
+        | Fn -> "fn"
         | EOF -> "eof"
       end
     ^ "'"
