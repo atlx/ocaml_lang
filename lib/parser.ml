@@ -8,8 +8,6 @@ module Parser = struct
     | ReturnStmt of ast
     | IntLiteral of int
 
-  let eof = Error "unexpected end of file"
-
   (** Convert a ast node to a string. Not tail-recursive. *)
   let rec string_of_ast = function
     | Name value -> "(name: " ^ value ^ ")"
@@ -18,6 +16,17 @@ module Parser = struct
     | Block _ -> "(block: <statements>)"
     | ReturnStmt value -> "(return: " ^ string_of_ast value ^ ")"
     | IntLiteral value -> "(int: " ^ Int.to_string value ^ ")"
+
+  let rec traverse (visitor : ast -> 'a list) = function
+    | Function { name = _; body } ->
+      (* TODO: Concat? *)
+      ignore (visitor body);
+      traverse visitor body
+    | Block statements -> List.map visitor statements
+    | ReturnStmt value -> traverse visitor value
+    | ast -> [ visitor ast ]
+
+  let eof = Error "unexpected end of file"
 
   let unexpected_token actual expected =
     Error
