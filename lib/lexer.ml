@@ -8,8 +8,11 @@ module Lexer = struct
     | Whitespace
     | BraceL
     | BraceR
+    | ParenthesesL
+    | ParenthesesR
     | Return
     | Fn
+    | Colon
     | EOF
 
   type 'a state = 'a * char list
@@ -56,6 +59,9 @@ module Lexer = struct
       | '-' -> (Minus, tail)
       | '{' -> (BraceL, tail)
       | '}' -> (BraceR, tail)
+      | '(' -> (ParenthesesL, tail)
+      | ')' -> (ParenthesesR, tail)
+      | ':' -> (Colon, tail)
       | _ when is_whitespace head -> (Whitespace, tail)
       | _ when is_identifier head -> begin
         let value, tail =
@@ -100,8 +106,11 @@ module Lexer = struct
         | Whitespace -> "whitespace"
         | BraceL -> "left_brace"
         | BraceR -> "right_brace"
+        | ParenthesesL -> "left_parentheses"
+        | ParenthesesR -> "right_parentheses"
         | Return -> "return"
         | Fn -> "fn"
+        | Colon -> "colon"
         | EOF -> "eof"
       end
     ^ "'"

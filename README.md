@@ -22,5 +22,5 @@ $ cd llvm-13.0.0.src
 $ mkdir _build
 $ cd _build
 $ cmake ..
-$ sudo cmake --build . --target install -j5 # Build and install LLVM.
+$ sudo cmake --build . --target install -j2 # Build and install LLVM.
 ```

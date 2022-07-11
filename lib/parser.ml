@@ -1,28 +1,41 @@
 open Lexer
 
 module Parser = struct
+  type ty = Unknown | Foo | Never
+
   type ast =
     | Name of string
-    | Function of { name : string; body : ast }
-    | Block of ast list
+    | Function of { name : string; prototype : ast; body : ast }
+    | BlockExpr of ast list
     | ReturnStmt of ast
     | IntLiteral of int
+    | ExternFunction of { name : string; prototype : ast }
+    | Parameter of { name : string; type_hint : ty option }
+    | Prototype of {
+        parameters : ast list;
+        return_type_hint : ty option;
+        is_variadic : bool;
+        is_extern : bool;
+        accepts_instance : bool;
+        this_parameter : ast option;
+      }
 
   (** Convert a ast node to a string. Not tail-recursive. *)
   let rec string_of_ast = function
     | Name value -> "(name: " ^ value ^ ")"
     | Function { name; _ } -> "(function: " ^ name ^ ")"
     (* TODO: Display statements. *)
-    | Block _ -> "(block: <statements>)"
+    | BlockExpr _ -> "(block: <statements>)"
     | ReturnStmt value -> "(return: " ^ string_of_ast value ^ ")"
     | IntLiteral value -> "(int: " ^ Int.to_string value ^ ")"
+    | _ -> "(unnamed)"
 
   let rec traverse (visitor : ast -> 'a list) = function
-    | Function { name = _; body } ->
+    | Function { name = _; prototype = _; body } ->
       (* TODO: Concat? *)
       ignore (visitor body);
       traverse visitor body
-    | Block statements -> List.map visitor statements
+    | BlockExpr statements -> List.map visitor statements
     | ReturnStmt value -> traverse visitor value
     | ast -> [ visitor ast ]
 
@@ -31,8 +44,7 @@ module Parser = struct
   let unexpected_token actual expected =
     Error
       begin
-        "expected " ^ expected ^ ", got "
-        ^ Lexer.string_of_token actual
+        "expected " ^ expected ^ ", got " ^ Lexer.string_of_token actual
       end
 
   (* let try_parse (f : Lexer.token list -> (ast * Lexer.token list, string)
@@ -45,7 +57,6 @@ module Parser = struct
 
   let parse_expr = function
     | [] -> eof
-    (* TODO: Unsafe code. Raises exception on integer parsing failure. *)
     | Lexer.Integer value :: tokens ->
       Ok (IntLiteral (int_of_string value), tokens)
     | token :: _ -> unexpected_token token "expression"
@@ -62,14 +73,47 @@ module Parser = struct
     end
     | token :: _ -> unexpected_token token (Lexer.string_of_token Lexer.Return)
 
-  let parse_block = function
+  let parse_type = function
+    | [] -> eof
+    | Lexer.Identifier name :: tokens -> Ok (Unknown, tokens)
+    | token :: _ -> unexpected_token token "type"
+
+  let parse_parameter = function
+    | [] -> eof
+    | tokens -> begin
+      match parse_name tokens with
+      | Ok (name, next_tokens) -> (
+        match tokens with
+        | Lexer.Colon :: tail -> Ok (name, next_tokens)
+        | _ -> None)
+    end
+    | token :: _ -> unexpected_token token "parameter name"
+
+  let parse_prototype = function
+    | [] -> eof
+    | Lexer.ParenthesesL :: tokens ->
+      Ok
+        ( Prototype
+            {
+              parameters = [];
+              return_type_hint = None;
+              is_variadic = false;
+              is_extern = false;
+              accepts_instance = false;
+              this_parameter = None;
+            },
+          tokens )
+    | token :: _ ->
+      unexpected_token token (Lexer.string_of_token Lexer.ParenthesesL)
+
+  let parse_block_expr = function
     | [] -> eof
     | Lexer.BraceL :: init_tokens ->
       let rec aux acc next_tokens =
         match next_tokens with
         | [] -> eof
-        | Lexer.BraceL :: Lexer.BraceR :: tail -> Ok (Block [], tail)
-        | Lexer.BraceR :: tail -> Ok (Block (List.rev acc), tail)
+        | Lexer.BraceL :: Lexer.BraceR :: tail -> Ok (BlockExpr [], tail)
+        | Lexer.BraceR :: tail -> Ok (BlockExpr (List.rev acc), tail)
         | Lexer.Return :: _ -> begin
           match parse_return_stmt next_tokens with
           | Ok (return_stmt, tail) -> aux (return_stmt :: acc) tail
@@ -84,7 +128,7 @@ module Parser = struct
   let parse_fn = function
     | [] -> eof
     | Lexer.Fn :: Lexer.Identifier name :: tokens -> begin
-      match parse_block tokens with
+      match parse_block_expr tokens with
       | Ok (body, next_tokens) -> Ok (Function { name; body }, next_tokens)
       | error -> error
     end

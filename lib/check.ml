@@ -1,10 +1,6 @@
 open Parser
 
 module Check = struct
-  type ty = Unknown | Foo | Never
-
-  let ( >>= ) = 1
-
   let rec short_on_error application = function
     | [] -> Ok ()
     | head :: tail -> (
@@ -12,14 +8,16 @@ module Check = struct
       | Error e -> Error e
       | _ -> short_on_error application tail)
 
+  let rec aggregate_diagnostics f values = List.map f values |> List.flatten
+
   let rec infer_type = function
     | Parser.ReturnStmt value -> infer_type value
-    | _ -> Unknown
+    | _ -> Parser.Unknown
 
   let rec check = function
-    | Parser.ReturnStmt _ -> Error [ "this is an error!" ]
-    | Parser.Block statements -> short_on_error check statements
-    | _ -> Ok ()
+    | Parser.ReturnStmt _ -> [ Error "foo" ]
+    | Parser.Block statements -> aggregate_diagnostics check statements
+    | _ -> []
 
   let check_all ast = check ast
 end
